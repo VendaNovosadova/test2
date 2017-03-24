@@ -1,0 +1,319 @@
+---
+title: "tydir"
+author: "Vendula"
+date: "15 bøezna 2017"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+**nahrani dat**
+```{r, echo=TRUE}
+suppressMessages(library(dplyr))
+suppressMessages(library(tidyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(plotly))
+setwd("C:/Users/User/Documents/R")
+met_all<-read.csv("met_data_row.csv")
+met_all<-cbind(met_all,"id"=1:nrow(met_all))
+met_all<-select(met_all, -Compound_Name, -Formula, -CAS_ID)
+met_all <- met_all %>%
+  mutate(NObs = rowSums(is.na(select(., starts_with("Mass_"))))) %>%
+  filter(NObs != 0) # odstranim co nema mereni
+```
+
+###prevedeni dat do "long format"
+
+
+```{r, echo=TRUE}
+met_long<-met_all %>%
+  gather(znak, value, -Mass_ALL, -RT_ALL, -id) %>%
+  extract(znak, c("metoda", "replikat"), "(.*)_KC([^_]*)") %>% 
+  spread( metoda, value)
+
+head(met_long)
+```
+
+####zavislost MFE score na TGT score
+
+```{r}
+met_long_score<-met_long%>%
+  filter(!is.na(Score_MFE))%>%
+  filter(!is.na(Score_Tgt))
+
+met_long_score%>%
+  ggplot(aes(x=Score_Tgt, y=Score_MFE, colour=replikat))+geom_point()
+```
+
+
+####závislost prùmìru hmotnosti na sd pro rùzná score
+
+```{r, echo=TRUE, fig.height=4, fig.width=4}
+met_long_Mass<-met_long%>%
+  filter(!is.na(Mass)) # odstranim co nema mereni
+head(met_long_Mass)
+met_long_Mass%>%
+  filter(Score_MFE>95)%>%
+  group_by(id)%>%
+  summarise(std=sd(Mass), avg=mean(Mass))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru hmotnosti na std", subtitle="MFE=95 a více")
+```
+```{r, echo=FALSE, fig.height=4, fig.width=4}
+
+met_long_Mass%>%
+  filter(Score_MFE>80)%>%
+  group_by(id)%>%
+  summarise(std=sd(Mass), avg=mean(Mass))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru hmotnosti na std", subtitle="MFE=80 a více")
+
+```
+```{r, echo=FALSE, fig.height=4, fig.width=4}
+
+met_long_Mass%>%
+  filter(Score_MFE>50)%>%
+  group_by(id)%>%
+  summarise(std=sd(Mass), avg=mean(Mass))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru hmotnosti na std", subtitle="MFE=50 a více")
+
+
+met_long_Mass%>%
+  filter(Score_MFE>0)%>%
+  group_by(id)%>%
+  summarise(std=sd(Mass), avg=mean(Mass))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru hmotnosti na std", subtitle="MFE=0 a více")
+
+
+met_long_Mass%>%
+  filter(Score_Tgt>95)%>%
+  group_by(id)%>%
+  summarise(std=sd(Mass), avg=mean(Mass))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru hmotnosti na std", subtitle="Tgt=95 a více")
+
+
+met_long_Mass%>%
+  filter(Score_Tgt>80)%>%
+  group_by(id)%>%
+  summarise(std=sd(Mass), avg=mean(Mass))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru hmotnosti na std", subtitle="Tgt=85 a více")
+
+
+met_long_Mass%>%
+  filter(Score_Tgt>50)%>%
+  group_by(id)%>%
+  summarise(std=sd(Mass), avg=mean(Mass))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru hmotnosti na std", subtitle="Tgt=50 a více")
+
+met_long_Mass%>%
+  filter(Score_Tgt>0)%>%
+  group_by(id)%>%
+  summarise(std=sd(Mass), avg=mean(Mass))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru hmotnosti na std", subtitle="Tgt=0 a více")
+```
+
+####Závislost RT na sd
+
+```{r,echo=FALSE, fig.height=4, fig.width=4}
+met_long_RT<-met_long%>%
+  filter(!is.na(RT)) # odstranim co nema mereni
+met_long_RT%>%
+  filter(Score_MFE>95)%>%
+  group_by(id)%>%
+  summarise(std=sd(RT), avg=mean(RT))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru RT na std", subtitle="MFE=95 a více")
+
+
+met_long_RT%>%
+  filter(Score_MFE>80)%>%
+  group_by(id)%>%
+  summarise(std=sd(RT), avg=mean(RT))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru RT na std", subtitle="MFE=80 a více")
+
+
+met_long_RT%>%
+  filter(Score_MFE>50)%>%
+  group_by(id)%>%
+  summarise(std=sd(RT), avg=mean(RT))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru RT na std", subtitle="MFE=50 a více")
+
+
+met_long_RT%>%
+  filter(Score_MFE>0)%>%
+  group_by(id)%>%
+  summarise(std=sd(RT), avg=mean(RT))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru RT na std", subtitle="MFE=0 a více")
+
+```
+```{r,echo=FALSE, fig.height=4, fig.width=4}
+
+met_long_RT<-met_long%>%
+  filter(!is.na(RT)) # odstranim co nema mereni
+met_long_RT%>%
+  filter(Score_Tgt>95)%>%
+  group_by(id)%>%
+  summarise(std=sd(RT), avg=mean(RT))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru RT na std", subtitle="Tgt=95 a více")
+
+
+met_long_RT%>%
+  filter(Score_Tgt>80)%>%
+  group_by(id)%>%
+  summarise(std=sd(RT), avg=mean(RT))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru RT na std", subtitle="Tgt=80 a více")
+
+
+met_long_RT%>%
+  filter(Score_Tgt>50)%>%
+  group_by(id)%>%
+  summarise(std=sd(RT), avg=mean(RT))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru RT na std", subtitle="Tgt=50 a více")
+
+
+met_long_RT%>%
+  filter(Score_Tgt>0)%>%
+  group_by(id)%>%
+  summarise(std=sd(RT), avg=mean(RT))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru RT na std", subtitle="Tgt=0 a více")
+```
+
+####Závislost plochy na sd
+
+
+```{r,echo=FALSE, fig.height=4, fig.width=4}
+met_long_Area<-met_long%>%
+  filter(!is.na(Area)) # odstranim co nema mereni
+met_long_Area%>%
+  filter(Score_MFE>95)%>%
+  group_by(id)%>%
+  summarise(std=sd(Area), avg=mean(Area))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru plochy na std", subtitle="MFE=95 a více")
+
+
+met_long_Area%>%
+  filter(Score_MFE>80)%>%
+  group_by(id)%>%
+  summarise(std=sd(Area), avg=mean(Area))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru plochy na std", subtitle="MFE=80 a více")
+
+
+met_long_Area%>%
+  filter(Score_MFE>50)%>%
+  group_by(id)%>%
+  summarise(std=sd(Area), avg=mean(Area))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru plochy na std", subtitle="MFE=50 a více")
+
+
+met_long_Area%>%
+  filter(Score_MFE>0)%>%
+  group_by(id)%>%
+  summarise(std=sd(Area), avg=mean(Area))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru plochy na std", subtitle="MFE=0 a více")
+
+```
+
+```{r,echo=FALSE, fig.height=4, fig.width=4}
+
+met_long_Area<-met_long%>%
+  filter(!is.na(Area)) # odstranim co nema mereni
+met_long_Area%>%
+  filter(Score_Tgt>95)%>%
+  group_by(id)%>%
+  summarise(std=sd(Area), avg=mean(Area))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru plochy na std", subtitle="Tgt=95 a více")
+
+
+met_long_Area%>%
+  filter(Score_Tgt>80)%>%
+  group_by(id)%>%
+  summarise(std=sd(Area), avg=mean(Area))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru plochy na std", subtitle="Tgt=80 a více")
+
+
+met_long_Area%>%
+  filter(Score_Tgt>50)%>%
+  group_by(id)%>%
+  summarise(std=sd(Area), avg=mean(Area))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru plochy na std", subtitle="Tgt=50 a více")
+
+
+met_long_Area%>%
+  filter(Score_Tgt>0)%>%
+  group_by(id)%>%
+  summarise(std=sd(Area), avg=mean(Area))%>%
+  filter(!is.na(std))%>%
+  ggplot(aes(x=std, y=avg))+geom_point()+labs(title="Závislost prùmìru plochy na std", subtitle="Tgt=0 a více")
+
+```
+
+####Závislost RT na MASS
+
+```{r,echo=FALSE, fig.height=4, fig.width=4}
+met_long_RT_Mass<-met_long%>%
+  filter(!is.na(RT))%>%
+filter(!is.na(Mass))# odstranim co nema mereni
+met_long_RT_Mass%>%
+  filter(Score_MFE>95)%>%
+  group_by(id)%>%
+  summarise(avg_Mass=mean(Mass), avg_RT=mean(RT))%>%
+  ggplot(aes(x=avg_Mass, y=avg_RT))+geom_point()+labs(title="Závislost prùmìru hmotnosti na prùmìru RT", subtitle="MFE=95 a více")
+met_long_RT_Mass%>%
+  filter(Score_MFE>80)%>%
+  group_by(id)%>%
+  summarise(avg_Mass=mean(Mass), avg_RT=mean(RT))%>%
+  ggplot(aes(x=avg_Mass, y=avg_RT))+geom_point()+labs(title="Závislost prùmìru hmotnosti na prùmìru RT", subtitle="MFE=80 a více")
+met_long_RT_Mass%>%
+  filter(Score_MFE>50)%>%
+  group_by(id)%>%
+  summarise(avg_Mass=mean(Mass), avg_RT=mean(RT))%>%
+  ggplot(aes(x=avg_Mass, y=avg_RT))+geom_point()+labs(title="Závislost prùmìru hmotnosti na prùmìru RT", subtitle="MFE=50 a více")
+met_long_RT_Mass%>%
+  filter(Score_MFE>0)%>%
+  group_by(id)%>%
+  summarise(avg_Mass=mean(Mass), avg_RT=mean(RT))%>%
+  ggplot(aes(x=avg_Mass, y=avg_RT))+geom_point()+labs(title="Závislost prùmìru hmotnosti na prùmìru RT", subtitle="MFE=0 a více")
+
+met_long_RT_Mass%>%
+  filter(Score_Tgt>95)%>%
+  group_by(id)%>%
+  summarise(avg_Mass=mean(Mass), avg_RT=mean(RT))%>%
+  ggplot(aes(x=avg_Mass, y=avg_RT))+geom_point()+labs(title="Závislost prùmìru hmotnosti na prùmìru RT", subtitle="Tgt=95 a více")
+met_long_RT_Mass%>%
+  filter(Score_Tgt>80)%>%
+  group_by(id)%>%
+  summarise(avg_Mass=mean(Mass), avg_RT=mean(RT))%>%
+  ggplot(aes(x=avg_Mass, y=avg_RT))+geom_point()+labs(title="Závislost prùmìru hmotnosti na prùmìru RT", subtitle="Tgt=80 a více")
+met_long_RT_Mass%>%
+  filter(Score_Tgt>50)%>%
+  group_by(id)%>%
+  summarise(avg_Mass=mean(Mass), avg_RT=mean(RT))%>%
+  ggplot(aes(x=avg_Mass, y=avg_RT))+geom_point()+labs(title="Závislost prùmìru hmotnosti na prùmìru RT", subtitle="Tgt=50 a více")
+met_long_RT_Mass%>%
+  filter(Score_Tgt>0)%>%
+  group_by(id)%>%
+  summarise(avg_Mass=mean(Mass), avg_RT=mean(RT))%>%
+  ggplot(aes(x=avg_Mass, y=avg_RT))+geom_point()+labs(title="Závislost prùmìru plochy na prùmìru RT", subtitle="Tgt=0 a více")
+```
+
